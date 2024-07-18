@@ -6,6 +6,7 @@ const ExpressError = require("./utils/ExpressError");
 
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
+const postRoutes = require("./routes/post");
 
 require("dotenv").config();
 
@@ -13,11 +14,17 @@ const app = express();
 
 app.use(bodyParser.json());
 
-app.use(cors());
+app.use(
+  cors({
+    origin: `${process.env.CLIENT_SIDE_URL}`,
+  })
+);
 
 app.use(authRoutes);
 
 app.use(userRoutes);
+
+app.use(postRoutes);
 
 app.use((err, req, res, next) => {
   if (!err.statusCode) err.statusCode = 500;

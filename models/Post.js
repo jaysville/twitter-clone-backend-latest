@@ -31,6 +31,7 @@ const postSchema = new Schema(
       type: Boolean,
       required: true,
     },
+    replyingTo: {},
     author: {
       type: Schema.Types.ObjectId,
 
@@ -39,6 +40,7 @@ const postSchema = new Schema(
     },
     //   verified
   },
+
   {
     timestamps: true,
   }

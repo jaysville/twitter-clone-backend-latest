@@ -56,6 +56,6 @@ exports.postValidator = [
   body("content")
     .isLength({ min: 3 })
     .withMessage("Post too short")
-    .isLength({ max: 100 })
+    .isLength({ max: 250 })
     .withMessage("Post too long"),
 ];
