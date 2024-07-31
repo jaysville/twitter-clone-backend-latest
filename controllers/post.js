@@ -3,6 +3,8 @@ const Post = require("../models/Post");
 const User = require("../models/User");
 const ExpressError = require("../utils/ExpressError");
 const { validationResult } = require("express-validator");
+const { handleUpload } = require("../cloudinary");
+const fs = require("fs");
 
 exports.fetchPosts = async (req, res, next) => {
   try {
@@ -27,6 +29,50 @@ exports.fetchUserPosts = async (req, res, next) => {
       .sort({
         createdAt: "descending",
       });
+    res.status(200).json({ posts });
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
+exports.fetchUserReplies = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const posts = await Post.find({
+      author: userId,
+      isComment: true,
+    })
+      .populate("author")
+      .sort({
+        createdAt: "descending",
+      });
+
+    res.status(200).json({ posts });
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
+exports.fetchUserReposts = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const posts = await Post.find({ repostedBy: userId })
+      .populate("author")
+      .sort({
+        createdAt: "descending",
+      });
+    res.status(200).json({ posts });
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
+exports.fetchUserLikes = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const posts = await Post.find({ likedBy: userId })
+      .populate("author")
+      .sort({ createdAt: "descending" });
     res.status(200).json({ posts });
   } catch (e) {
     next(new ExpressError(e.message, 500));
@@ -67,7 +113,8 @@ exports.fetchComments = async (req, res, next) => {
 };
 
 exports.createPost = async (req, res, next) => {
-  const { content, images } = req.body;
+  const { content } = req.body;
+  const { files } = req;
 
   const errors = validationResult(req);
 
@@ -77,6 +124,12 @@ exports.createPost = async (req, res, next) => {
 
   try {
     const post = new Post({ content, isComment: false, author: req.userId });
+    if (files.length > 0) {
+      for (const image of files) {
+        const uploadedImage = await handleUpload(image.buffer, "Posts");
+        post.images.push(uploadedImage);
+      }
+    }
 
     await post.save();
 
@@ -123,7 +176,15 @@ exports.deletePost = async (req, res, next) => {
     //fetch the user
     const user = await User.findById(req.userId);
 
-    await Post.findByIdAndDelete(postId);
+    //delete all associated post comments
+
+    const post = await Post.findById(postId);
+
+    const comments = post.comments;
+
+    for (const comment of comments) {
+      await Post.findByIdAndDelete(comment);
+    }
 
     user.posts.pull(postId);
 
@@ -145,7 +206,20 @@ exports.deletePost = async (req, res, next) => {
       await user.save();
     }
 
-    //add functionality to delete a comment to be done by post owner and comment owner
+    //if post is a comment, delete it from array of the original post
+
+    if (post.isComment) {
+      const originalPost = await Post.find({ comments: post._id });
+      originalPost[0].comments.pull(postId);
+      await originalPost[0].save();
+    }
+
+    if (post.images.length > 0) {
+    }
+    //delete the post itself
+
+    await Post.findByIdAndDelete(postId);
+    //add functionality to delete a comment to be done by post owner
 
     res.status(200).json({ message: `${postId} deleted successfully.` });
   } catch (err) {
@@ -215,7 +289,6 @@ exports.commentOnPost = async (req, res, next) => {
     await post.save();
     res.status(201).json({ message: "Reply sent" });
   } catch (err) {
-    console.log(err);
     next(new ExpressError(err.message, 500));
   }
 };

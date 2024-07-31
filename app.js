@@ -12,17 +12,42 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(bodyParser.json());
-
 app.use(
   cors({
     origin: `${process.env.CLIENT_SIDE_URL}`,
   })
 );
+const multer = require("multer");
+
+const storage = multer.memoryStorage();
+// multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "images");
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, file.originalname);
+//   },
+// });
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === "image/png" ||
+    file.mimetype === "image/jpg" ||
+    file.mimetype === "image/jpeg"
+  ) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
+
+app.use(bodyParser.json());
 
 app.use(authRoutes);
 
 app.use(userRoutes);
+
+app.use(multer({ storage, fileFilter }).array("images"));
+// app.use(multer({ storage, fileFilter }).single("image"));
 
 app.use(postRoutes);
 

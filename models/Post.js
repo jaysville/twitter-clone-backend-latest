@@ -7,7 +7,8 @@ const postSchema = new Schema(
       type: "String",
       required: true,
     },
-    //   images:
+    images: [String],
+
     likedBy: [
       {
         type: Schema.Types.ObjectId,
@@ -31,7 +32,10 @@ const postSchema = new Schema(
       type: Boolean,
       required: true,
     },
-    replyingTo: {},
+    replyingTo: {
+      repliedPostId: { type: Schema.Types.ObjectId, ref: "Post" },
+      repliedPostAuthor: String,
+    },
     author: {
       type: Schema.Types.ObjectId,
 

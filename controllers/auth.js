@@ -21,9 +21,20 @@ exports.registerUser = async (req, res, next) => {
 
     const user = new User({ username, email, password: hashedPassword });
     await user.save();
+
+    const token = jwt.sign(
+      {
+        email: user.email,
+        userId: user._id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1d",
+      }
+    );
     res
       .status(201)
-      .json({ message: "User Created", userId: user._id.toString() });
+      .json({ message: "User Created", userId: user._id.toString(), token });
   } catch (e) {
     next(new ExpressError(e.message, 500));
   }

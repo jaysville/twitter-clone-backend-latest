@@ -49,6 +49,7 @@ exports.loginValidator = [
     "Passwords must contain between 6 -12 alphanumeric characters"
   )
     .isAlphanumeric()
+    .trim()
     .isLength({ min: 6, max: 12 }),
 ];
 

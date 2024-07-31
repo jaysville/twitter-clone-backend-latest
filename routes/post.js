@@ -15,16 +15,25 @@ router
   .get(postController.fetchPosts) //route to fetch all posts
   .post(isAuth, postValidator, postController.createPost); //route to create post
 
+//route to fetch a single post
 router.get("/api/posts/:postId", postController.fetchSinglePost);
 
 router.get("/api/posts/:postId/comments", postController.fetchComments);
 
-router.get("/api/posts/user/:userId", postController.fetchUserPosts);
 //route to fetch posts by a specific user
+router.get("/api/posts/user/:userId", postController.fetchUserPosts);
 
-//route to fetch a single post
+//route to fetch user reposts
+router.get("/api/posts/user/:userId/reposts", postController.fetchUserReposts);
+
+//route to fetch user replies
+router.get("/api/posts/user/:userId/replies", postController.fetchUserReplies);
+
+//route to fetch user likes
+router.get("/api/posts/user/:userId/likes", postController.fetchUserLikes);
+
 //route to edit post
-router.patch(
+router.post(
   "/api/posts/edit/:postId",
   isAuth,
   isPostAuthor,

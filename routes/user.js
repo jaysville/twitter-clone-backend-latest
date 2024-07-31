@@ -14,7 +14,7 @@ router.get("/api/user/:id", userController.fetchUser);
 
 //route to follow and follow user goes here
 
-router.post(
+router.put(
   "/api/user/follow/:userToFollowId",
   isAuth,
   userController.toggleFollowUser

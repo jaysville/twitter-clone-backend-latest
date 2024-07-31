@@ -8,7 +8,7 @@ const userSchema = new Schema(
       required: true,
       unique: true,
     },
-    displayName: String,
+
     email: {
       type: String,
       required: true,
@@ -50,8 +50,8 @@ const userSchema = new Schema(
       },
     ],
     bio: String,
-    //   profilePic
-    //verifeid
+    profilePic: String,
+    displayName: String,
   },
   {
     timestamps: true,

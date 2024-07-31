@@ -15,23 +15,6 @@ exports.fetchUser = async (req, res, next) => {
   }
 };
 
-exports.fetchUserPosts = async (req, res, next) => {
-  const { userId } = req.params;
-  try {
-    const posts = await Post.find({
-      author: userId,
-      isComment: false,
-    })
-      .populate("author")
-      .sort({
-        createdAt: "descending",
-      });
-    res.status(200).json({ posts });
-  } catch (e) {
-    next(new ExpressError(e.message, 500));
-  }
-};
-
 //controller for following  user goes here
 
 exports.toggleFollowUser = async (req, res, next) => {
