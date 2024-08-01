@@ -4,11 +4,10 @@ const router = express.Router();
 
 const postController = require("../controllers/post");
 
-const { postValidator } = require("../utils/validators");
-
 const isPostAuthor = require("../middleware/isPostAuthor");
 
 const isAuth = require("../middleware/isAuth");
+const postValidator = require("../middleware/postValidator");
 
 router
   .route("/api/posts")

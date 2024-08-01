@@ -15,6 +15,25 @@ exports.fetchUser = async (req, res, next) => {
   }
 };
 
+exports.editProfile = async (req, res, next) => {
+  const { userId } = req;
+  const { profilePic } = req.file;
+
+  const { bio, displayName } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    user.bio = bio;
+    user.profilePic = profilePic;
+    user.displayName = displayName;
+    await user.save();
+    res.status(200).json(user);
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
 //controller for following  user goes here
 
 exports.toggleFollowUser = async (req, res, next) => {

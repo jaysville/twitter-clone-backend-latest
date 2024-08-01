@@ -1,4 +1,4 @@
-const { body } = require("express-validator");
+const { body, check } = require("express-validator");
 const User = require("../models/User");
 const ExpressError = require("./ExpressError");
 
@@ -51,12 +51,4 @@ exports.loginValidator = [
     .isAlphanumeric()
     .trim()
     .isLength({ min: 6, max: 12 }),
-];
-
-exports.postValidator = [
-  body("content")
-    .isLength({ min: 3 })
-    .withMessage("Post too short")
-    .isLength({ max: 250 })
-    .withMessage("Post too long"),
 ];

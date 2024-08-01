@@ -44,16 +44,15 @@ app.use(bodyParser.json());
 
 app.use(authRoutes);
 
-app.use(userRoutes);
-
 app.use(multer({ storage, fileFilter }).array("images"));
-// app.use(multer({ storage, fileFilter }).single("image"));
 
+app.use(userRoutes);
 app.use(postRoutes);
 
 app.use((err, req, res, next) => {
   if (!err.statusCode) err.statusCode = 500;
   if (!err.message) err.message = "Something went wrong";
+  console.log(err);
   res.status(err.statusCode).json({ error: err.message });
 });
 

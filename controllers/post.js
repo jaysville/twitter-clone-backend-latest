@@ -123,7 +123,11 @@ exports.createPost = async (req, res, next) => {
   }
 
   try {
-    const post = new Post({ content, isComment: false, author: req.userId });
+    const post = new Post({
+      content: content || "",
+      isComment: false,
+      author: req.userId,
+    });
     if (files.length > 0) {
       for (const image of files) {
         const uploadedImage = await handleUpload(image.buffer, "Posts");
