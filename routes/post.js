@@ -36,7 +36,6 @@ router.post(
   "/api/posts/edit/:postId",
   isAuth,
   isPostAuthor,
-  postValidator,
   postController.editPost
 );
 

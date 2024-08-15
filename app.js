@@ -20,14 +20,7 @@ app.use(
 const multer = require("multer");
 
 const storage = multer.memoryStorage();
-// multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "images");
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, file.originalname);
-//   },
-// });
+
 const fileFilter = (req, file, cb) => {
   if (
     file.mimetype === "image/png" ||
@@ -53,19 +46,18 @@ app.use((err, req, res, next) => {
   if (!err.statusCode) err.statusCode = 500;
   if (!err.message) err.message = "Something went wrong";
   console.log(err);
-  res.status(err.statusCode).json({ error: err.message });
+  res.status(err.statusCode).json({
+    error: err.statusCode === 500 ? "Something went wrong" : err.message,
+  });
 });
 
-const startServer = async () => {
+(async () => {
   try {
     await mongoose.connect(process.env.DB_URL);
-
     app.listen(8080, () => {
       console.log("Server Connected Success");
     });
   } catch (err) {
     throw new ExpressError("Database Connection Failed", 500);
   }
-};
-
-startServer();
+})();

@@ -4,7 +4,6 @@ const User = require("../models/User");
 const ExpressError = require("../utils/ExpressError");
 const { validationResult } = require("express-validator");
 const { handleUpload } = require("../cloudinary");
-const fs = require("fs");
 
 exports.fetchPosts = async (req, res, next) => {
   try {
@@ -82,10 +81,7 @@ exports.fetchUserLikes = async (req, res, next) => {
 exports.fetchSinglePost = async (req, res, next) => {
   const { postId } = req.params;
   try {
-    const post = await Post.findById(postId).populate({
-      path: "author",
-      select: "username",
-    });
+    const post = await Post.findById(postId).populate("author");
     if (!post) return next(new ExpressError("Post not found", 404));
     res.status(200).json(post);
   } catch (e) {
@@ -102,7 +98,6 @@ exports.fetchComments = async (req, res, next) => {
       path: "comments",
       populate: {
         path: "author",
-        select: "username",
       },
     });
     const comments = post.comments.reverse();
@@ -150,7 +145,8 @@ exports.createPost = async (req, res, next) => {
 };
 
 exports.editPost = async (req, res, next) => {
-  const { content, images } = req.body;
+  const { content = "", imagesToDelete = [] } = req.body;
+  const images = req.files || [];
 
   const errors = validationResult(req);
 
@@ -162,10 +158,31 @@ exports.editPost = async (req, res, next) => {
 
     const post = await Post.findById(postId);
 
-    if (post.content === content) {
-      return next(new ExpressError("No changes made", 403));
+    if (
+      post.content === content &&
+      imagesToDelete.length === 0 &&
+      images.length === 0
+    ) {
+      return next(new ExpressError("No changes made", 422));
     }
+
+    if (images.length > 0) {
+      for (const image of images) {
+        const uploadedImage = await handleUpload(image.buffer, "Posts");
+        post.images.push(uploadedImage);
+      }
+    }
+
+    if (imagesToDelete.length > 0) {
+      post.images = post.images.filter((url) => !imagesToDelete.includes(url));
+    }
+
     post.content = content;
+    if (post.content === "" && images.length === 0) {
+      return next(
+        new ExpressError("Post cannot be empty, delete post instead.", 403)
+      );
+    }
     await post.save();
     res.status(200).json({ message: "post edited", post });
   } catch (err) {
@@ -177,18 +194,11 @@ exports.deletePost = async (req, res, next) => {
   const { postId } = req.params;
 
   try {
-    //fetch the user
     const user = await User.findById(req.userId);
-
-    //delete all associated post comments
 
     const post = await Post.findById(postId);
 
-    const comments = post.comments;
-
-    for (const comment of comments) {
-      await Post.findByIdAndDelete(comment);
-    }
+    await Post.deleteMany({ _id: { $in: post.comments } });
 
     user.posts.pull(postId);
 
@@ -198,18 +208,19 @@ exports.deletePost = async (req, res, next) => {
 
     const usersThatLiked = await User.find({ likes: postId });
 
+    const usersThatReposted = await User.find({ reposts: postId });
+
     for (const user of usersThatLiked) {
       user.likes.pull(postId);
-      await user.save();
     }
-
-    const usersThatReposted = await User.find({ reposts: postId });
 
     for (const user of usersThatReposted) {
       user.reposts.pull(postId);
-      await user.save();
     }
 
+    await Promise.all(
+      [...usersThatLiked, ...usersThatReposted].map((user) => user.save())
+    );
     //if post is a comment, delete it from array of the original post
 
     if (post.isComment) {
@@ -266,13 +277,10 @@ exports.toggleLikePost = async (req, res, next) => {
 
 exports.commentOnPost = async (req, res, next) => {
   const { postId } = req.params;
-  const { content, images } = req.body;
+  const { content } = req.body;
 
   try {
-    const post = await Post.findById(postId).populate({
-      path: "author",
-      select: "username",
-    });
+    const post = await Post.findById(postId).populate("author");
     if (!post) return next(new ExpressError("Post not found", 404));
 
     const comment = new Post({
@@ -283,7 +291,7 @@ exports.commentOnPost = async (req, res, next) => {
 
     comment.replyingTo = {
       repliedPostId: postId,
-      repliedPostAuthor: post.author.username,
+      repliedPostAuthor: post.author.displayName || post.author.username,
     };
 
     await comment.save();

@@ -3,15 +3,17 @@ const ExpressError = require("../utils/ExpressError");
 module.exports = (req, res, next) => {
   const { content } = req.body;
   const images = req.files;
+  const hasImages = images.length > 0;
 
-  if ((content && images.length > 0) || (content && images.length === 0)) {
-    if (content.length < 2) {
-      next(
-        new ExpressError("Post text should contain 2 characters minimum", 422)
-      );
-    }
+  if (hasImages && content) {
     next();
-  } else if (!content && images.length > 0) {
+  } else if (hasImages && !content) {
     next();
+  } else if (!hasImages && content) {
+    next();
+  } else if (!hasImages && !content) {
+    next(new ExpressError("Post must contain either an image or a text", 422));
+  } else {
+    next(new ExpressError("Something went wrong", 500));
   }
 };

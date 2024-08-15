@@ -12,6 +12,10 @@ const isAuth = require("../middleware/isAuth");
 
 router.get("/api/user/:id", userController.fetchUser);
 
+//route to edit profile
+
+router.post("/api/user/edit", isAuth, userController.editProfile);
+
 //route to follow and follow user goes here
 
 router.put(

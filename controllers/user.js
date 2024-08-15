@@ -1,3 +1,4 @@
+const { handleUpload } = require("../cloudinary");
 const Post = require("../models/Post");
 const User = require("../models/User");
 const ExpressError = require("../utils/ExpressError");
@@ -17,15 +18,23 @@ exports.fetchUser = async (req, res, next) => {
 
 exports.editProfile = async (req, res, next) => {
   const { userId } = req;
-  const { profilePic } = req.file;
+  const profilePic = req.files;
 
   const { bio, displayName } = req.body;
 
+  console.log(profilePic);
+
   try {
     const user = await User.findById(userId);
+    if (profilePic.length > 0) {
+      const uploadedImage = await handleUpload(
+        profilePic[0].buffer,
+        "Profile Pic"
+      );
+      user.profilePic = uploadedImage;
+    }
 
     user.bio = bio;
-    user.profilePic = profilePic;
     user.displayName = displayName;
     await user.save();
     res.status(200).json(user);
