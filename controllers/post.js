@@ -1,6 +1,7 @@
 const { model } = require("mongoose");
 const Post = require("../models/Post");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 const ExpressError = require("../utils/ExpressError");
 const { validationResult } = require("express-validator");
 const { handleUpload } = require("../cloudinary");
@@ -12,6 +13,24 @@ exports.fetchPosts = async (req, res, next) => {
       .sort({ createdAt: "descending" });
 
     res.status(200).json({ message: "Success", posts });
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
+exports.fetchFollowingPosts = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId).populate("following");
+
+    const followingIds = user.following.map(
+      (followingUser) => followingUser._id
+    );
+
+    const posts = await Post.find({ author: { $in: followingIds } })
+      .populate("author")
+      .sort({ createdAt: "descending" });
+
+    res.status(200).json(posts);
   } catch (e) {
     next(new ExpressError(e.message, 500));
   }
@@ -268,6 +287,44 @@ exports.toggleLikePost = async (req, res, next) => {
       post.likedBy.push(req.userId);
       await user.save();
       await post.save();
+
+      if (user._id.toString() !== post.author.toString()) {
+        const existingNotification = await Notification.find({
+          activeUser: user,
+          associatedPost: post,
+          type: "like",
+        });
+        if (!existingNotification) {
+          const notification = new Notification({
+            activeUser: user,
+            passiveUser: post.author,
+            message: `${user.displayName || user.username} liked your post.`,
+            associatedPost: post,
+            type: "like",
+          });
+
+          await notification.save();
+          // io.getIO().emit("notification", notification);
+        } else {
+          ("existing one deleted");
+          await Notification.deleteMany({
+            message: `${user.displayName || user.username} liked your post.`,
+            activeUser: user,
+            associatedPost: post,
+            type: "like",
+          });
+          const notification = new Notification({
+            activeUser: user,
+            passiveUser: post.author,
+            message: `${user.displayName || user.username} liked your post.`,
+            associatedPost: post,
+            type: "like",
+          });
+
+          await notification.save();
+        }
+      }
+
       res.status(200).json({ message: "Post liked." });
     }
   } catch (e) {
@@ -283,10 +340,11 @@ exports.commentOnPost = async (req, res, next) => {
     const post = await Post.findById(postId).populate("author");
     if (!post) return next(new ExpressError("Post not found", 404));
 
+    const user = await User.findById(req.userId);
     const comment = new Post({
       content,
       isComment: true,
-      author: req.userId,
+      author: user,
     });
 
     comment.replyingTo = {
@@ -299,6 +357,22 @@ exports.commentOnPost = async (req, res, next) => {
     post.comments.push(comment._id);
 
     await post.save();
+
+    if (user._id.toString() !== post.author._id.toString()) {
+      const notification = new Notification({
+        activeUser: user,
+        passiveUser: post.author,
+        message: `${
+          user.displayName || user.username
+        } commented on your your post.`,
+        associatedPost: post,
+        type: "comment",
+      });
+
+      await notification.save();
+    }
+    // io.getIO().emit("notification", notification);
+
     res.status(201).json({ message: "Reply sent" });
   } catch (err) {
     next(new ExpressError(err.message, 500));
@@ -330,6 +404,45 @@ exports.toggleRepost = async (req, res, next) => {
       post.repostedBy.push(req.userId);
       await user.save();
       await post.save();
+
+      if (user._id.toString() !== post.author.toString()) {
+        const existingNotification = await Notification.find({
+          activeUser: user,
+          associatedPost: post,
+          message: `${user.displayName || user.username} reposted your post.`,
+          type: "repost",
+        });
+        if (!existingNotification) {
+          const notification = new Notification({
+            activeUser: user,
+            passiveUser: post.author,
+            message: `${user.displayName || user.username} reposted your post.`,
+            associatedPost: post,
+            type: "repost",
+          });
+
+          await notification.save();
+          // io.getIO().emit("notification", notification);
+        } else {
+          ("existing one deleted");
+          await Notification.deleteMany({
+            message: `${user.displayName || user.username} reposted your post.`,
+            activeUser: user,
+            associatedPost: post,
+            type: "repost",
+          });
+          const notification = new Notification({
+            activeUser: user,
+            passiveUser: post.author,
+            message: `${user.displayName || user.username} reposted your post.`,
+            associatedPost: post,
+            type: "repost",
+          });
+
+          await notification.save();
+        }
+      }
+
       res.status(200).json({ message: "Post Unreposted" });
     }
   } catch (err) {

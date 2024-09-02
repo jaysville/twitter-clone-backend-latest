@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const { createServer } = require("http");
+
 const ExpressError = require("./utils/ExpressError");
 
 const authRoutes = require("./routes/auth");
@@ -11,6 +13,9 @@ const postRoutes = require("./routes/post");
 require("dotenv").config();
 
 const app = express();
+const server = createServer(app);
+const io = require("./socket").init(server);
+const connectedUsers = {};
 
 app.use(
   cors({
@@ -54,7 +59,7 @@ app.use((err, req, res, next) => {
 (async () => {
   try {
     await mongoose.connect(process.env.DB_URL);
-    app.listen(8080, () => {
+    server.listen(8080, () => {
       console.log("Server Connected Success");
     });
   } catch (err) {

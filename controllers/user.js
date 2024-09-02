@@ -1,8 +1,9 @@
 const { handleUpload } = require("../cloudinary");
-const Post = require("../models/Post");
+const Notification = require("../models/Notification");
 const User = require("../models/User");
 const ExpressError = require("../utils/ExpressError");
-const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
+const io = require("../socket");
 
 exports.fetchUser = async (req, res, next) => {
   const { id } = req.params;
@@ -16,13 +17,55 @@ exports.fetchUser = async (req, res, next) => {
   }
 };
 
+exports.fetchRecommendedUsers = async (req, res, next) => {
+  try {
+    const users = await User.find({
+      _id: { $ne: req.userId },
+      followers: { $ne: req.userId },
+    }).select(["displayName", "username", "profilePic", "followers"]);
+    res.status(200).json(users);
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
+exports.fetchFollowers = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const users = await User.find({ following: userId }).select([
+      "displayName",
+      "username",
+      "profilePic",
+      "following",
+      "followers",
+    ]);
+    res.status(200).json(users);
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
+exports.fetchFollowing = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const users = await User.find({ followers: userId }).select([
+      "displayName",
+      "username",
+      "profilePic",
+      "following",
+      "followers",
+    ]);
+    res.status(200).json(users);
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
 exports.editProfile = async (req, res, next) => {
   const { userId } = req;
   const profilePic = req.files;
 
   const { bio, displayName } = req.body;
-
-  console.log(profilePic);
 
   try {
     const user = await User.findById(userId);
@@ -67,6 +110,43 @@ exports.toggleFollowUser = async (req, res, next) => {
     if (!isFollowingUser) {
       userToFollow.followers.push(req.userId);
       user.following.push(userToFollow._id);
+
+      const existingNotification = await Notification.find({
+        message: `${user.displayName || user.username} started following you.`,
+      });
+      if (!existingNotification) {
+        const notification = new Notification({
+          activeUser: user,
+          passiveUser: userToFollow,
+          message: `${
+            user.displayName || user.username
+          } started following you.`,
+          type: "Follow",
+        });
+
+        await notification.save();
+        console.log("notified");
+        // io.getIO().emit("notification", notification);
+      } else {
+        ("existing one deleted");
+        await Notification.deleteMany({
+          message: `${
+            user.displayName || user.username
+          } started following you.`,
+        });
+        const notification = new Notification({
+          activeUser: user,
+          passiveUser: userToFollow,
+          message: `${
+            user.displayName || user.username
+          } started following you.`,
+          type: "Follow",
+        });
+
+        await notification.save();
+        console.log("notified after deleting previous ones");
+      }
+
       await userToFollow.save();
       await user.save();
       res.status(200).json({ message: "User followed" });
@@ -77,6 +157,40 @@ exports.toggleFollowUser = async (req, res, next) => {
       await user.save();
       res.status(200).json({ message: "User unfollowed" });
     }
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
+exports.fetchNotifications = async (req, res, next) => {
+  try {
+    const userNotifications = await Notification.find({
+      passiveUser: req.userId,
+    })
+      .populate("activeUser")
+      .sort({
+        createdAt: "descending",
+      });
+    res.status(200).json({ userNotifications });
+  } catch (e) {
+    next(new ExpressError(e.message, 500));
+  }
+};
+
+exports.viewNotifications = async (req, res, next) => {
+  try {
+    const { unviewedNotifs } = req.body;
+
+    const validObjectIds = unviewedNotifs.map(
+      (id) => new mongoose.Types.ObjectId(id)
+    );
+
+    await Notification.updateMany(
+      { _id: { $in: validObjectIds } },
+      { $set: { viewed: true } }
+    );
+
+    res.status(200).json({ message: "Notifications Viewed" });
   } catch (e) {
     next(new ExpressError(e.message, 500));
   }

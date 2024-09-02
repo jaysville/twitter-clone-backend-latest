@@ -49,6 +49,7 @@ const userSchema = new Schema(
         ref: "Post",
       },
     ],
+
     bio: String,
     profilePic: String,
     displayName: String,

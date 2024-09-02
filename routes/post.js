@@ -14,6 +14,7 @@ router
   .get(postController.fetchPosts) //route to fetch all posts
   .post(isAuth, postValidator, postController.createPost); //route to create post
 
+router.get("/api/posts/following", isAuth, postController.fetchFollowingPosts);
 //route to fetch a single post
 router.get("/api/posts/:postId", postController.fetchSinglePost);
 
