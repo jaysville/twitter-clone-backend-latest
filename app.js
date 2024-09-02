@@ -15,7 +15,8 @@ require("dotenv").config();
 const app = express();
 const server = createServer(app);
 const io = require("./socket").init(server);
-const connectedUsers = {};
+
+const PORT = process.env.PORT || 8080;
 
 app.use(
   cors({
@@ -59,7 +60,7 @@ app.use((err, req, res, next) => {
 (async () => {
   try {
     await mongoose.connect(process.env.DB_URL);
-    server.listen(8080, () => {
+    server.listen(PORT, () => {
       console.log("Server Connected Success");
     });
   } catch (err) {
