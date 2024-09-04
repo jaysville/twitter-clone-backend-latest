@@ -18,8 +18,6 @@ const helmet = require("helmet");
 const server = createServer(app);
 const io = require("./socket").init(server);
 
-const PORT = process.env.PORT || 8080;
-
 app.use(
   cors({
     origin: `${process.env.CLIENT_SIDE_URL}`,
@@ -64,7 +62,7 @@ app.use((err, req, res, next) => {
 (async () => {
   try {
     await mongoose.connect(process.env.DB_URL);
-    server.listen(PORT, () => {
+    server.listen(process.env.PORT, () => {
       console.log("Server Connected Success");
     });
   } catch (err) {
