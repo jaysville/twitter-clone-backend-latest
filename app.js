@@ -18,11 +18,24 @@ const helmet = require("helmet");
 const server = createServer(app);
 const io = require("./socket").init(server);
 
-app.use(
-  cors({
-    origin: `${process.env.CLIENT_SIDE_URL}`,
-  })
-);
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://jays-twitter-clone.vercel.app",
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
 const multer = require("multer");
 
 const storage = multer.memoryStorage();
