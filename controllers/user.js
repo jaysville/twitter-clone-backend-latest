@@ -125,7 +125,6 @@ exports.toggleFollowUser = async (req, res, next) => {
         });
 
         await notification.save();
-        console.log("notified");
         // io.getIO().emit("notification", notification);
       } else {
         ("existing one deleted");
@@ -144,7 +143,6 @@ exports.toggleFollowUser = async (req, res, next) => {
         });
 
         await notification.save();
-        console.log("notified after deleting previous ones");
       }
 
       await userToFollow.save();

@@ -13,6 +13,8 @@ const postRoutes = require("./routes/post");
 require("dotenv").config();
 
 const app = express();
+
+const helmet = require("helmet");
 const server = createServer(app);
 const io = require("./socket").init(server);
 
@@ -40,6 +42,8 @@ const fileFilter = (req, file, cb) => {
 };
 
 app.use(bodyParser.json());
+
+app.use(helmet());
 
 app.use(authRoutes);
 
