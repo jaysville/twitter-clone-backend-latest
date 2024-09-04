@@ -177,7 +177,7 @@ exports.fetchNotifications = async (req, res, next) => {
 
 exports.viewNotifications = async (req, res, next) => {
   try {
-    const { unviewedNotifs } = req.body;
+    const unviewedNotifs = req.body;
 
     const validObjectIds = unviewedNotifs.map(
       (id) => new mongoose.Types.ObjectId(id)
@@ -187,7 +187,6 @@ exports.viewNotifications = async (req, res, next) => {
       { _id: { $in: validObjectIds } },
       { $set: { viewed: true } }
     );
-
     res.status(200).json({ message: "Notifications Viewed" });
   } catch (e) {
     next(new ExpressError(e.message, 500));
